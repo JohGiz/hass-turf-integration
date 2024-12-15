@@ -1,0 +1,12 @@
+{
+    "domain": "turf-game",
+    "name": "Turf Game Integration",
+    "codeowners": [
+        "@JohGiz"
+    ],
+    "dependencies": [],
+    "documentation": "https://github.com/JohGiz/hass-turf-integration/wiki",
+    "iot_class": "cloud_polling",
+    "requirements": [],
+    "version": "0.1.0"
+  }
