@@ -7,6 +7,7 @@
     "dependencies": [],
     "documentation": "https://github.com/JohGiz/hass-turf-integration/wiki",
     "iot_class": "cloud_polling",
+    "config_flow": true,
     "requirements": [],
     "version": "0.1.0"
   }
