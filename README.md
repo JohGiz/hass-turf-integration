@@ -62,7 +62,7 @@ Du kan låta Home Assistant skicka en push-notis till din mobil så fort en ny z
 
 1. Gå till Inställningar -> Automatiseringar och scener och skapa en ny automatisering. 
 2. Klicka på de tre prickarna uppe till höger och välj Redigera i YAML. 
-3. Klistra in följande kod (glöm inte att byta ut Stockholm mot din egen region och notify.notify till din mobils notistjänst): 
+3. Klistra in följande kod (glöm inte att byta ut `Stockholm` mot din egen region och `notify.mobile_app_din_telefon` mot ditt eget enhets-id för notiser): 
 
 ```yaml 
 alias: "Turf: Ny zon skapad i min region"
@@ -74,12 +74,12 @@ trigger:
     entity_id: sensor.turf_latest_created_zones 
 condition:
   - condition: template
-    value_template: "{{ trigger.to_state.state not in ['unknown', 'unavailable'] and state_attr('sensor.turf_latest_created_zones', 'new_zones') and state_attr('sensor.turf_latest_created_zones', 'new_zones')[0].region == 'Stockholm' }}"
+    value_template: "{{ states('sensor.turf_latest_created_zones') not in ['unknown', 'unavailable'] and state_attr('sensor.turf_latest_created_zones', 'new_zones') and state_attr('sensor.turf_latest_created_zones', 'new_zones')[0].region == 'Stockholm' }}"
 action:
-  - service: notify.notify
+  - service: notify.mobile_app_din_telefon
     data:
       title: "🌟 Ny Turf-zon!"
-      message: "Zonen {{ trigger.to_state.state }} har precis skapats i din region!"
+      message: "Zonen {{ states('sensor.turf_latest_created_zones') }} har precis skapats i din region!"
 
 ```
 
