@@ -6,8 +6,10 @@ En anpassad integration (Custom Component) för att hämta statistik och informa
 
 Just nu stöder integrationen följande:
 - **Zoner:** Visar hur många zoner en specifik spelare "äger" just nu.
-- **PPH (Poäng per timme):** Visar hur många poäng per timme (PPH) spelaren får just nu.
+- **Poäng per timme:** Visar hur många poäng per timme spelaren får just nu.
 - **Senaste zonerna:** Visar namnet på den allra senast skapade zonen. I sensorns attribut sparas en lista med de senaste zonerna och i vilken region de ligger.
+
+*💡 Tips: Du kan lägga till integrationen flera gånger i Home Assistant för att följa flera olika spelare samtidigt! Varje spelare får sina egna sensorer för zoner och poäng per timme, medan listan för senaste zonerna delas.*
 
 *(Fler sensorer kan komma att läggas till i framtida uppdateringar.)*
 

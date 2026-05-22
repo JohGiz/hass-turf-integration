@@ -96,13 +96,13 @@ class TurfZonesSensor(SensorEntity):
 
 
 class TurfPphSensor(SensorEntity):
-    """Sensor som visar hur många poäng per timme (PPH) en Turf-spelare får just nu."""
+    """Sensor som visar hur många poäng per timme en Turf-spelare får just nu."""
 
     def __init__(self, session, turfname: str) -> None:
         """Initiera sensorn."""
         self.session = session
         self.turfname = turfname
-        self._attr_name = f"Turf PPH {turfname}"
+        self._attr_name = f"Turf Points Per Hour {turfname}"
         self._attr_unique_id = f"turf_pph_{turfname.lower()}"
         self._attr_native_unit_of_measurement = "pph"
         self._attr_icon = "mdi:speedometer"
@@ -128,9 +128,9 @@ class TurfPphSensor(SensorEntity):
                     else:
                         self._attr_native_value = None
                 else:
-                    _LOGGER.error("Fel vid anrop till Turf API (PPH). HTTP-status: %s", response.status)
+                    _LOGGER.error("Fel vid anrop till Turf API (Poäng per timme). HTTP-status: %s", response.status)
         except Exception as err:
-            _LOGGER.error("Kunde inte uppdatera Turf PPH-sensorn: %r", err)
+            _LOGGER.error("Kunde inte uppdatera Turf-sensorn för poäng per timme: %r", err)
 
 
 class TurfLatestZonesSensor(SensorEntity):
