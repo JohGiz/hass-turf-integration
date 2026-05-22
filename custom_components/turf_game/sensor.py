@@ -34,7 +34,8 @@ async def async_setup_entry(
         session = async_get_clientsession(hass)
         async_add_entities([
             TurfZonesSensor(session, turfname),
-            TurfPphSensor(session, turfname)
+            TurfPphSensor(session, turfname),
+            TurfLatestZonesSensor(session, turfname)
         ], update_before_add=True)
     else:
         _LOGGER.error("Kunde inte hitta 'turfname' i konfigurationen")
@@ -121,3 +122,67 @@ class TurfPphSensor(SensorEntity):
                     _LOGGER.error("Fel vid anrop till Turf API (PPH). HTTP-status: %s", response.status)
         except Exception as err:
             _LOGGER.error("Kunde inte uppdatera Turf PPH-sensorn: %r", err)
+
+
+class TurfLatestZonesSensor(SensorEntity):
+    """Sensor som visar de senast skapade zonerna (perfekt för FTT-jakt)."""
+
+    def __init__(self, session, turfname: str) -> None:
+        """Initiera sensorn."""
+        self.session = session
+        self._attr_name = "Turf Latest Created Zones"
+        # Vi använder turfname i id:t för att undvika namnkrockar om du lägger till flera spelare
+        self._attr_unique_id = f"turf_latest_created_{turfname.lower()}"
+        self._attr_icon = "mdi:map-marker-star"
+        self._extra_state_attributes = {}
+
+    @property
+    def extra_state_attributes(self):
+        """Returnera extra attribut för sensorn (t.ex. listan med zoner)."""
+        return self._extra_state_attributes
+
+    async def async_update(self) -> None:
+        """Hämta aktuell data asynkront från Turf API (Feed/Zone)."""
+        url = "https://api.turfgame.com/v5/feeds/zone"
+        headers = {
+            "User-Agent": "HomeAssistant-TurfIntegration/0.1.0",
+            "Accept": "application/json"
+        }
+        
+        try:
+            # Observera: Detta är ett GET-anrop för feeds, inte POST!
+            async with self.session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    if data and isinstance(data, list) and len(data) > 0:
+                        newest = data[0]
+                        
+                        # Hämta namnet på zonen (feed-datan kan se lite annorlunda ut än vanliga zoner)
+                        zone_name = newest.get("name")
+                        if not zone_name and "zone" in newest:
+                            zone_name = newest["zone"].get("name")
+                            
+                        self._attr_native_value = zone_name if zone_name else "Okänd zon"
+                        
+                        # Bygg en snygg lista att ha i attributen för Home Assistant
+                        new_zones_list = []
+                        for item in data:
+                            z = item.get("zone", item)
+                            new_zones_list.append({
+                                "name": z.get("name", "Okänd"),
+                                "dateCreated": z.get("dateCreated", ""),
+                                "region": z.get("region", {}).get("name", "Okänd region")
+                            })
+
+                        self._extra_state_attributes = {
+                            "new_zones": new_zones_list,
+                            "count": len(new_zones_list)
+                        }
+                    else:
+                        self._attr_native_value = "Inga nya zoner"
+                        self._extra_state_attributes = {"new_zones": [], "count": 0}
+                else:
+                    _LOGGER.error("Fel vid anrop till Turf API (FTT). HTTP-status: %s", response.status)
+        except Exception as err:
+            _LOGGER.error("Kunde inte uppdatera Turf FTT-sensorn: %r", err)

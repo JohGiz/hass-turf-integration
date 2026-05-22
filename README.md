@@ -7,6 +7,9 @@ En anpassad integration (Custom Component) för att hämta statistik och informa
 Just nu stöder integrationen följande:
 - **Zoner:** Visar hur många zoner en specifik spelare "äger" just nu.
 - **PPH (Poäng per timme):** Visar hur många poäng per timme (PPH) spelaren får just nu.
+- **FTT (Senaste zonerna):** Visar namnet på den allra senast skapade zonen. I sensorns attribut sparas en lista med de senaste zonerna och i vilken region de ligger, perfekt för FTT-jakt!
+
+*(Fler sensorer kan komma att läggas till i framtida uppdateringar.)*
 
 ## 📥 Installation via HACS (Rekommenderas)
 
@@ -35,3 +38,4 @@ När Home Assistant har startat om gör du följande för att lägga till din se
 ---
 
 *Denna integration är ett hobbyprojekt skapat av communityt och är inte officiellt kopplad till Andrimner (utvecklarna bakom Turf).*
+*Koden har till stor del tagits fram med hjälp av Gemini AI.*
