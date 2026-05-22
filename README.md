@@ -56,6 +56,33 @@ content: |-
 ```
 *(Tipset ovan visar de 10 senaste zonerna, men du kan ändra siffran om du vill se fler eller färre).*
 
+## 🤖 Automatisera notiser för nya zoner
+
+Du kan låta Home Assistant skicka en push-notis till din mobil så fort en ny zon skapas i din region (t.ex. "Stockholm" eller "Skåne").
+
+1. Gå till Inställningar -> Automatiseringar och scener och skapa en ny automatisering. 
+2. Klicka på de tre prickarna uppe till höger och välj Redigera i YAML. 
+3. Klistra in följande kod (glöm inte att byta ut Stockholm mot din egen region och notify.notify till din mobils notistjänst): 
+
+```yaml 
+alias: "Turf: Ny zon skapad i min region"
+description: "Skickar en notis när en ny Turf-zon skapas i en specifik region." 
+mode: single 
+
+trigger:
+  - platform: state
+    entity_id: sensor.turf_latest_created_zones 
+condition:
+  - condition: template
+    value_template: "{{ trigger.to_state.state not in ['unknown', 'unavailable'] and state_attr('sensor.turf_latest_created_zones', 'new_zones') and state_attr('sensor.turf_latest_created_zones', 'new_zones')[0].region == 'Stockholm' }}"
+action:
+  - service: notify.notify
+    data:
+      title: "🌟 Ny Turf-zon!"
+      message: "Zonen {{ trigger.to_state.state }} har precis skapats i din region!"
+
+```
+
 ## 🐞 Felsökning
 
 * **Ogiltigt användarnamn**: Kontrollera att spelarnamnet är rättstavat och existerar i Turf.
