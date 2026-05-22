@@ -134,7 +134,7 @@ class TurfPphSensor(SensorEntity):
 
 
 class TurfLatestZonesSensor(SensorEntity):
-    """Sensor som visar de senast skapade zonerna (perfekt för FTT-jakt)."""
+    """Sensor som visar de senast skapade zonerna."""
 
     def __init__(self, session) -> None:
         """Initiera sensorn."""
@@ -191,6 +191,6 @@ class TurfLatestZonesSensor(SensorEntity):
                         self._attr_native_value = "Inga nya zoner"
                         self._extra_state_attributes = {"new_zones": [], "count": 0}
                 else:
-                    _LOGGER.error("Fel vid anrop till Turf API (FTT). HTTP-status: %s", response.status)
+                    _LOGGER.error("Fel vid anrop till Turf API (Senaste zonerna). HTTP-status: %s", response.status)
         except Exception as err:
-            _LOGGER.error("Kunde inte uppdatera Turf FTT-sensorn: %r", err)
+            _LOGGER.error("Kunde inte uppdatera Turf-sensorn för senaste zoner: %r", err)

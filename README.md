@@ -7,7 +7,7 @@ En anpassad integration (Custom Component) för att hämta statistik och informa
 Just nu stöder integrationen följande:
 - **Zoner:** Visar hur många zoner en specifik spelare "äger" just nu.
 - **PPH (Poäng per timme):** Visar hur många poäng per timme (PPH) spelaren får just nu.
-- **FTT (Senaste zonerna):** Visar namnet på den allra senast skapade zonen. I sensorns attribut sparas en lista med de senaste zonerna och i vilken region de ligger, perfekt för FTT-jakt!
+- **Senaste zonerna:** Visar namnet på den allra senast skapade zonen. I sensorns attribut sparas en lista med de senaste zonerna och i vilken region de ligger.
 
 *(Fler sensorer kan komma att läggas till i framtida uppdateringar.)*
 
@@ -31,7 +31,7 @@ När Home Assistant har startat om gör du följande för att lägga till din se
 4. Fyll i det **Turf-användarnamn** du vill hämta data för.
 5. Klart! Sensorn kommer nu att hämta ny data från Turf var 5:e minut.
 
-## 📊 Visa senaste zonerna (FTT) på en Dashboard
+## 📊 Visa senaste zonerna på en Dashboard
 
 För att visa en snygg lista med de senast skapade zonerna på din Home Assistant-dashboard kan du använda ett inbyggt **Markdown-kort**.
 
