@@ -124,7 +124,7 @@ class TurfPphSensor(SensorEntity):
                     
                     if data and isinstance(data, list) and len(data) > 0:
                         user_data = data[0]
-                        self._attr_native_value = user_data.get("pph", 0)
+                        self._attr_native_value = user_data.get("pointsPerHour", 0)
                     else:
                         self._attr_native_value = None
                 else:
