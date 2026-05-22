@@ -45,9 +45,14 @@ För att visa en snygg lista med de senast skapade zonerna på din Home Assistan
 type: markdown
 title: 🌟 Senaste Turf-zonerna
 content: |-
-  {% for zone in state_attr('sensor.turf_latest_created_zones', 'new_zones')[:10] %}
-  * **{{ zone.name }}** ({{ zone.region }}) - *för {{ relative_time(as_datetime(zone.dateCreated)) }} sedan*
-  {% endfor %}
+  {% set new_zones = state_attr('sensor.turf_latest_created_zones', 'new_zones') %}
+  {% if new_zones %}
+    {% for zone in new_zones[:10] %}
+    * **{{ zone.name }}** ({{ zone.region }}) - *för {{ relative_time(as_datetime(zone.dateCreated)) }} sedan*
+    {% endfor %}
+  {% else %}
+    *Laddar data från Turf...*
+  {% endif %}
 ```
 *(Tipset ovan visar de 10 senaste zonerna, men du kan ändra siffran om du vill se fler eller färre).*
 
