@@ -31,6 +31,24 @@ När Home Assistant har startat om gör du följande för att lägga till din se
 4. Fyll i det **Turf-användarnamn** du vill hämta data för.
 5. Klart! Sensorn kommer nu att hämta ny data från Turf var 5:e minut.
 
+## 📊 Visa senaste zonerna (FTT) på en Dashboard
+
+För att visa en snygg lista med de senast skapade zonerna på din Home Assistant-dashboard kan du använda ett inbyggt **Markdown-kort**.
+
+1. Gå till din dashboard och klicka på **Redigera översikt**.
+2. Klicka på **Lägg till kort** och välj **Markdown**.
+3. Klistra in följande kod under fliken för kodredigering:
+
+```yaml
+type: markdown
+title: 🌟 Senaste Turf-zonerna
+content: |-
+  {% for zone in state_attr('sensor.turf_latest_created_zones', 'new_zones')[:10] %}
+  * **{{ zone.name }}** ({{ zone.region }}) - *för {{ relative_time(as_datetime(zone.dateCreated)) }} sedan*
+  {% endfor %}
+```
+*(Tipset ovan visar de 10 senaste zonerna, men du kan ändra siffran om du vill se fler eller färre).*
+
 ## 🐞 Felsökning
 
 * **Ogiltigt användarnamn**: Kontrollera att spelarnamnet är rättstavat och existerar i Turf.
