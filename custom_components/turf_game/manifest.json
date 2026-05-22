@@ -1,5 +1,5 @@
 {
-    "domain": "turf-game",
+    "domain": "turf_game",
     "name": "Turf Game Integration",
     "codeowners": [
         "@JohGiz"
