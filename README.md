@@ -6,8 +6,7 @@ En anpassad integration (Custom Component) för att hämta statistik och informa
 
 Just nu stöder integrationen följande:
 - **Zoner:** Visar hur många zoner en specifik spelare "äger" just nu.
-
-*(Fler sensorer kan komma att läggas till i framtida uppdateringar.)*
+- **PPH (Poäng per timme):** Visar hur många poäng per timme (PPH) spelaren får just nu.
 
 ## 📥 Installation via HACS (Rekommenderas)
 
