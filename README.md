@@ -9,7 +9,7 @@ Just nu stöder integrationen följande:
 - **Poäng per timme:** Visar hur många poäng per timme spelaren får just nu.
 - **Senaste zonerna:** Visar namnet på den allra senast skapade zonen. I sensorns attribut sparas en lista med de senaste zonerna och i vilken region de ligger.
 
-*💡 Tips: Du kan lägga till integrationen flera gånger i Home Assistant för att följa flera olika spelare samtidigt! Varje spelare får sina egna sensorer för zoner och poäng per timme, medan listan för senaste zonerna delas.*
+*💡 Tips: Du kan lägga till flera spelare genom att skapa fler konfigurationer ("entries") under integrationen i Home Assistant! Varje spelare får sina egna sensorer för zoner och poäng per timme, medan listan för senaste zonerna delas.*
 
 *(Fler sensorer kan komma att läggas till i framtida uppdateringar.)*
 
