@@ -37,5 +37,4 @@ När Home Assistant har startat om gör du följande för att lägga till din se
 
 ---
 
-*Denna integration är ett hobbyprojekt skapat av communityt och är inte officiellt kopplad till Andrimner (utvecklarna bakom Turf).*
 *Koden har till stor del tagits fram med hjälp av Gemini AI.*
