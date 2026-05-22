@@ -32,11 +32,20 @@ async def async_setup_entry(
     if turfname:
         # Använd Home Assistants rekommenderade metod för asynkrona HTTP-anrop
         session = async_get_clientsession(hass)
-        async_add_entities([
+        
+        sensors = [
             TurfZonesSensor(session, turfname),
-            TurfPphSensor(session, turfname),
-            TurfLatestZonesSensor(session, turfname)
-        ], update_before_add=True)
+            TurfPphSensor(session, turfname)
+        ]
+        
+        # Kontrollera om den globala sensorn för nya zoner redan har laddats.
+        # Detta säkerställer att den bara skapas en gång, oavsett hur många användare som läggs till.
+        domain_data = hass.data.setdefault(config_entry.domain, {})
+        if not domain_data.get("latest_zones_sensor_loaded"):
+            sensors.append(TurfLatestZonesSensor(session))
+            domain_data["latest_zones_sensor_loaded"] = True
+            
+        async_add_entities(sensors, update_before_add=True)
     else:
         _LOGGER.error("Kunde inte hitta 'turfname' i konfigurationen")
 
@@ -127,12 +136,11 @@ class TurfPphSensor(SensorEntity):
 class TurfLatestZonesSensor(SensorEntity):
     """Sensor som visar de senast skapade zonerna (perfekt för FTT-jakt)."""
 
-    def __init__(self, session, turfname: str) -> None:
+    def __init__(self, session) -> None:
         """Initiera sensorn."""
         self.session = session
         self._attr_name = "Turf Latest Created Zones"
-        # Vi använder turfname i id:t för att undvika namnkrockar om du lägger till flera spelare
-        self._attr_unique_id = f"turf_latest_created_{turfname.lower()}"
+        self._attr_unique_id = "turf_latest_created_zones"
         self._attr_icon = "mdi:map-marker-star"
         self._extra_state_attributes = {}
 
