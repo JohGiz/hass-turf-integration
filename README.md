@@ -31,7 +31,6 @@ När Home Assistant har startat om gör du följande för att lägga till din se
 
 ## 🐞 Felsökning
 
-* **"Config flow could not be loaded"**: Dubbelkolla att din mapp heter exakt `turf_game` (med understreck, inte bindestreck).
 * **Ogiltigt användarnamn**: Kontrollera att spelarnamnet är rättstavat och existerar i Turf.
 
 ---
