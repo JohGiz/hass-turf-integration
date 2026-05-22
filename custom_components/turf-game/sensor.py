@@ -1,38 +1,76 @@
 """Platform for sensor integration."""
 from __future__ import annotations
 
+import logging
+from datetime import timedelta
+
 from homeassistant.components.sensor import (
-    SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfTemperature
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+
+_LOGGER = logging.getLogger(__name__)
+
+# Hur ofta Home Assistant ska hämta ny data från Turf (vi sätter den på var 5:e minut
+# för att inte spamma deras API i onödan)
+SCAN_INTERVAL = timedelta(minutes=5)
 
 
-def setup_platform(
+async def async_setup_entry(
     hass: HomeAssistant,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the sensor platform."""
-    add_entities([ExampleSensor()])
+    """Sätt upp Turf-sensorn utifrån data från konfigurationsflödet."""
+    # Hämta namnet som användaren skrev in vid installationen i Home Assistant
+    turfname = config_entry.data.get("turfname")
+    
+    if turfname:
+        # Använd Home Assistants rekommenderade metod för asynkrona HTTP-anrop
+        session = async_get_clientsession(hass)
+        async_add_entities([TurfZonesSensor(session, turfname)])
+    else:
+        _LOGGER.error("Kunde inte hitta 'turfname' i konfigurationen")
 
 
-class ExampleSensor(SensorEntity):
-    """Representation of a Sensor."""
+class TurfZonesSensor(SensorEntity):
+    """Sensor som visar hur många zoner en Turf-spelare äger just nu."""
 
-    _attr_name = "Example Temperature"
-    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
-    _attr_device_class = SensorDeviceClass.TEMPERATURE
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    def __init__(self, session, turfname: str) -> None:
+        """Initiera sensorn."""
+        self.session = session
+        self.turfname = turfname
+        self._attr_name = f"Turf Zones {turfname}"
+        self._attr_unique_id = f"turf_zones_{turfname.lower()}"
+        self._attr_native_unit_of_measurement = "zones"
+        self._attr_icon = "mdi:map-marker-multiple"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
 
-    def update(self) -> None:
-        """Fetch new state data for the sensor.
-
-        This is the only method that should fetch new data for Home Assistant.
-        """
-        self._attr_native_value = 23
+    async def async_update(self) -> None:
+        """Hämta aktuell data asynkront från Turf API."""
+        url = "https://api.turfgame.com/v5/users"
+        payload = [{"name": self.turfname}]
+        
+        try:
+            async with self.session.post(url, json=payload) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    # Kontrollera att API:et returnerade en fylld lista
+                    if data and isinstance(data, list) and len(data) > 0:
+                        user_data = data[0]
+                        # 'zones'-nyckeln innehåller en array med ID:n för tagna zoner.
+                        # Antalet objekt i arrayen = antalet zoner användaren håller just nu.
+                        zones = user_data.get("zones", [])
+                        self._attr_native_value = len(zones)
+                    else:
+                        _LOGGER.warning("Hittade ingen data för Turf-användaren: %s", self.turfname)
+                        self._attr_native_value = None
+                else:
+                    _LOGGER.error("Fel vid anrop till Turf API. HTTP-status: %s", response.status)
+        except Exception as err:
+            _LOGGER.error("Kunde inte uppdatera Turf-sensorn: %s", err)

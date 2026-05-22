@@ -4,13 +4,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import aiohttp
 import voluptuous as vol
 
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN  # pylint:disable=unused-import
-from .hub import Hub
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,31 +42,27 @@ async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
     if len(data["turfname"]) < 3:
         raise InvalidName
 
-    hub = Hub(hass, data["turfname"])
-    # The dummy hub provides a `test_connection` method to ensure it's working
-    # as expected
-    result = await hub.test_connection()
-    if not result:
-        # If there is an error, raise an exception to notify HA that there was a
-        # problem. The UI will also show there was a problem
+    session = async_get_clientsession(hass)
+    url = "https://api.turfgame.com/v5/users"
+    payload = [{"name": data["turfname"]}]
+
+    try:
+        async with session.post(url, json=payload) as response:
+            if response.status != 200:
+                raise CannotConnect
+            
+            result = await response.json()
+            # Turf API returnerar en tom lista om spelaren inte hittades
+            if not result or not isinstance(result, list) or len(result) == 0:
+                raise InvalidName
+    except aiohttp.ClientError:
         raise CannotConnect
-
-    # If your PyPI package is not built with async, pass your methods
-    # to the executor:
-    # await hass.async_add_executor_job(
-    #     your_validate_func, data["username"], data["password"]
-    # )
-
-    # If you cannot connect:
-    # throw CannotConnect
-    # If the authentication is wrong:
-    # InvalidAuth
 
     # Return info that you want to store in the config entry.
     # "Title" is what is displayed to the user for this hub device
     # It is stored internally in HA as part of the device config.
     # See `async_step_user` below for how this is used
-    return {"title": data["host"]}
+    return {"title": data["turfname"]}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -98,8 +95,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 # The error string is set here, and should be translated.
                 # This example does not currently cover translations, see the
                 # comments on `DATA_SCHEMA` for further details.
-                # Set the error on the `host` field, not the entire form.
-                errors["turfname"] = "cannot_connect"
+                # Set the error on the `turfname` field, not the entire form.
+                errors["turfname"] = "invalid_name"
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
