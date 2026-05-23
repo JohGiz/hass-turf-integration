@@ -15,7 +15,22 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_SCHEMA = vol.Schema({vol.Required("turfname"): str})
+# This is the schema that used to display the UI to the user. This simple
+# schema has a single required host field, but it could include a number of fields
+# such as username, password etc. See other components in the HA core code for
+# further examples.
+# Note the input displayed to the user will be translated. See the
+# translations/<lang>.json file and strings.json. See here for further information:
+# https://developers.home-assistant.io/docs/config_entries_config_flow_handler/#translations
+# At the time of writing I found the translations created by the scaffold didn't
+# quite work as documented and always gave me the "Lokalise key references" string
+# (in square brackets), rather than the actual translated value. I did not attempt to
+# figure this out or look further into it.
+DATA_SCHEMA = vol.Schema({
+    vol.Required("turfname"): str,
+    vol.Optional("watched_zones", default=""): str,
+})
+
 
 async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
@@ -47,6 +62,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
+    @staticmethod
+    def async_get_options_flow(_config_entry):
+        return OptionsFlowHandler()
+
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         errors = {}
@@ -64,6 +83,27 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
+        )
+
+
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options flow for Turf Game (update watched zones without reinstalling)."""
+
+    async def async_step_init(self, user_input=None):
+        """Visa formuläret för att uppdatera bevakade zoner."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        current_zones = self.config_entry.options.get(
+            "watched_zones",
+            self.config_entry.data.get("watched_zones", ""),
+        )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema({
+                vol.Optional("watched_zones", default=current_zones): str,
+            }),
         )
 
 
