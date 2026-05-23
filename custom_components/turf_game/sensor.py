@@ -186,7 +186,8 @@ class TurfLatestZonesSensor(SensorEntity):
                                 new_zones_list.append({
                                     "name": z.get("name", "Okänd"),
                                     "dateCreated": z.get("dateCreated", ""),
-                                    "region": z.get("region", {}).get("name", "Okänd region")
+                                    "region": z.get("region", {}).get("name", "Okänd region"),
+                                    "area": z.get("region", {}).get("area", {}).get("name", "")
                                 })
 
                             self._extra_state_attributes = {
