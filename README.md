@@ -8,6 +8,7 @@ Just nu stöder integrationen följande:
 - **Zoner:** Visar hur många zoner en specifik spelare "äger" just nu.
 - **Poäng per timme:** Visar hur många poäng per timme spelaren får just nu.
 - **Senaste zonerna:** Visar namnet på den allra senast skapade zonen. I sensorns attribut sparas en lista med de senaste zonerna och i vilken region de ligger.
+- **Zonägare:** Visar vem som för tillfället äger en specifik zon. Du väljer själv vilka zoner du vill bevaka – en sensor skapas automatiskt per zon. Sensorn har även attributen `latitude`, `longitude` och `owned_by_player` (sant/falskt beroende på om den konfigurerade spelaren äger zonen just nu).
 
 *💡 Tips: Du kan lägga till flera spelare genom att skapa fler konfigurationer ("entries") under integrationen i Home Assistant! Varje spelare får sina egna sensorer för zoner och poäng per timme, medan listan för senaste zonerna delas.*
 
@@ -32,6 +33,59 @@ När Home Assistant har startat om gör du följande för att lägga till din se
 3. Sök efter **Turf Game Integration** och klicka på den.
 4. Fyll i det **Turf-användarnamn** du vill hämta data för.
 5. Klart! Sensorn kommer nu att hämta ny data från Turf var 5:e minut.
+
+## 🎯 Bevakade zoner
+
+Du kan välja vilka specifika Turf-zoner du vill hålla koll på. För varje zon skapas en sensor som visar vem som äger den, och om det är du.
+
+### Ställ in bevakade zoner vid installation
+
+I installationssteget finns ett valfritt fält **Bevakade zoner** där du kan ange en kommaseparerad lista med zonnamn, t.ex.:
+
+```
+ZoneAlpha, ZoneBeta, MinFavoritzon
+```
+
+*Zonnamnen måste stämma exakt (inklusive versaler) med hur de heter i Turf.*
+
+### Ändra bevakade zoner utan att installera om
+
+Du kan när som helst lägga till eller ta bort bevakade zoner utan att behöva ta bort och lägga till integrationen på nytt:
+
+1. Gå till **Inställningar** -> **Enheter och tjänster** i Home Assistant.
+2. Hitta **Turf Game Integration** och klicka på **Konfigurera**.
+3. Uppdatera listan med bevakade zoner och klicka på **Skicka**.
+4. Integrationen startar om automatiskt och sensorerna uppdateras direkt.
+
+### Sensorernas namn
+
+Varje bevakad zon får en sensor med namnet `Turf Zone <zonnamn>`, t.ex. `sensor.turf_zone_zonealpha`. Sensorns värde är namnet på den nuvarande ägaren, eller `Ingen ägare` om zonen saknar ägare.
+
+## 🔔 Automatisera notis när någon tar din zon
+
+Med attributet `owned_by_player` kan du låta Home Assistant skicka en push-notis direkt när någon tar en av dina bevakade zoner.
+
+1. Gå till **Inställningar** -> **Automatiseringar och scener** och skapa en ny automatisering.
+2. Klicka på de tre prickarna uppe till höger och välj **Redigera i YAML**.
+3. Klistra in följande kod (byt ut `sensor.turf_zone_minzon` mot din egen sensors id och `notify.mobile_app_din_telefon` mot ditt enhets-id för notiser):
+
+```yaml
+alias: "Turf: Någon tog min zon"
+description: "Skickar en notis när en bevakad zon byter ägare bort från mig."
+mode: single
+
+trigger:
+  - platform: state
+    entity_id: sensor.turf_zone_minzon
+    attribute: owned_by_player
+    from: true
+    to: false
+action:
+  - service: notify.mobile_app_din_telefon
+    data:
+      title: "😱 Någon tog din zon!"
+      message: "{{ state_attr('sensor.turf_zone_minzon', 'zone_name') }} ägs nu av {{ states('sensor.turf_zone_minzon') }}!"
+```
 
 ## 📊 Visa senaste zonerna på en Dashboard
 

@@ -26,7 +26,10 @@ _LOGGER = logging.getLogger(__name__)
 # quite work as documented and always gave me the "Lokalise key references" string
 # (in square brackets), rather than the actual translated value. I did not attempt to
 # figure this out or look further into it.
-DATA_SCHEMA = vol.Schema({("turfname"): str})
+DATA_SCHEMA = vol.Schema({
+    vol.Required("turfname"): str,
+    vol.Optional("watched_zones", default=""): str,
+})
 
 
 async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
@@ -75,6 +78,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     # changes.
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
+    @staticmethod
+    def async_get_options_flow(_config_entry):
+        return OptionsFlowHandler()
+
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         # This goes through the steps to take the user through the setup process.
@@ -104,6 +111,27 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # If there is no user input or there were errors, show the form again, including any errors that were found with the input.
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
+        )
+
+
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options flow for Turf Game (update watched zones without reinstalling)."""
+
+    async def async_step_init(self, user_input=None):
+        """Visa formuläret för att uppdatera bevakade zoner."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        current_zones = self.config_entry.options.get(
+            "watched_zones",
+            self.config_entry.data.get("watched_zones", ""),
+        )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema({
+                vol.Optional("watched_zones", default=current_zones): str,
+            }),
         )
 
 
