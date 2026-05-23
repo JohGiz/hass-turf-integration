@@ -241,7 +241,8 @@ class TurfLatestZonesSensor(CoordinatorEntity, SensorEntity):
             new_zones_list.append({
                 "name": z.get("name", "Okänd"),
                 "dateCreated": z.get("dateCreated", ""),
-                "region": z.get("region", {}).get("name", "Okänd region")
+                "region": z.get("region", {}).get("name", "Okänd region"),
+                "area": z.get("region", {}).get("area", {}).get("name", "")
             })
         return {"new_zones": new_zones_list, "count": len(new_zones_list)}
 
