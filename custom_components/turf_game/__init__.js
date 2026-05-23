@@ -1,1 +1,0 @@
-"""Turf sensor integration."""
