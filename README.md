@@ -102,7 +102,7 @@ content: |-
   {% set new_zones = state_attr('sensor.turf_latest_created_zones', 'new_zones') %}
   {% if new_zones %}
     {% for zone in new_zones[:10] %}
-    * **{{ zone.name }}** ({{ zone.region }}) - *för {{ relative_time(as_datetime(zone.dateCreated)) }} sedan*
+    * **{{ zone.name }}** ({{ zone.area }}{% if zone.area %}, {% endif %}{{ zone.region }}) - *för {{ relative_time(as_datetime(zone.dateCreated)) }} sedan*
     {% endfor %}
   {% else %}
     *Laddar data från Turf...*
@@ -128,7 +128,10 @@ trigger:
     entity_id: sensor.turf_latest_created_zones 
 condition:
   - condition: template
+    # Filtrera på region (t.ex. "Stockholm") — byt till valfri region:
     value_template: "{{ states('sensor.turf_latest_created_zones') not in ['unknown', 'unavailable'] and state_attr('sensor.turf_latest_created_zones', 'new_zones') and state_attr('sensor.turf_latest_created_zones', 'new_zones')[0].region == 'Stockholm' }}"
+    # Vill du filtrera på area istället (t.ex. "Huddinge"), byt till:
+    # value_template: "{{ states('sensor.turf_latest_created_zones') not in ['unknown', 'unavailable'] and state_attr('sensor.turf_latest_created_zones', 'new_zones') and state_attr('sensor.turf_latest_created_zones', 'new_zones')[0].area == 'Huddinge' }}"
 action:
   - service: notify.mobile_app_din_telefon
     data:
