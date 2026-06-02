@@ -25,6 +25,70 @@ _LOGGER = logging.getLogger(__name__)
 # för att inte spamma deras API i onödan)
 SCAN_INTERVAL = timedelta(minutes=5)
 
+TURF_RANKS = {
+    0: "Newbie",
+    1: "Novice Scout",
+    2: "Experienced Scout",
+    3: "Advanced Scout",
+    4: "Master Scout",
+    5: "Scout Elder",
+    6: "Novice Traveller",
+    7: "Experienced Traveller",
+    8: "Advanced Traveller",
+    9: "Master Traveller",
+    10: "World Traveller",
+    11: "Novice Explorer",
+    12: "Experienced Explorer",
+    13: "Advanced Explorer",
+    14: "Master Explorer",
+    15: "Great Explorer",
+    16: "Novice Adventurer",
+    17: "Experienced Adventurer",
+    18: "Advanced Adventurer",
+    19: "Master Adventurer",
+    20: "Super Adventurer",
+    21: "Novice Seeker",
+    22: "Experienced Seeker",
+    23: "Advanced Seeker",
+    24: "Master Seeker",
+    25: "The Seeker",
+    26: "Novice Conquistador",
+    27: "Experienced Conquistador",
+    28: "Advanced Conquistador",
+    29: "Master Conquistador",
+    30: "Grand Conquistador",
+    31: "Novice Zoner",
+    32: "Experienced Zoner",
+    33: "Advanced Zoner",
+    34: "Master Zoner",
+    35: "Delicate Zoner",
+    36: "Light Turfer",
+    37: "Novice Turfer",
+    38: "Experienced Turfer",
+    39: "Advanced Turfer",
+    40: "Turf Master",
+    41: "Turf Grandmaster",
+    42: "Turf Guardian",
+    43: "Turf Knight",
+    44: "Turf Hero",
+    45: "Turf Elder",
+    46: "Turf Preacher",
+    47: "Turf Lord",
+    48: "Turf Overlord",
+    49: "Turf Count",
+    50: "Turf King",
+    51: "Turf Tsar",
+    52: "Turf Caesar",
+    53: "Amazing Turfer",
+    54: "Incredible Turfer",
+    55: "Holy Turfer",
+    56: "Turf Angel",
+    57: "Turf Archangel",
+    58: "Turf God",
+    59: "Turf Titan",
+    60: "Turfalicious",
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -52,7 +116,7 @@ async def async_setup_entry(
                 url = "https://api.turfgame.com/v5/users"
                 payload = [{"name": turfname}]
                 headers = {
-                    "User-Agent": "HomeAssistant-TurfIntegration/0.2.0",
+                    "User-Agent": "HomeAssistant-TurfIntegration/0.4.0",
                     "Accept": "application/json"
                 }
                 try:
@@ -81,7 +145,9 @@ async def async_setup_entry(
 
         sensors = [
             TurfZonesSensor(coordinator, turfname),
-            TurfPphSensor(coordinator, turfname)
+            TurfPphSensor(coordinator, turfname),
+            TurfRankSensor(coordinator, turfname),
+            TurfPlaceSensor(coordinator, turfname)
         ]
 
         if "zone_feed_coordinator" not in domain_data:
@@ -91,7 +157,7 @@ async def async_setup_entry(
                     await asyncio.sleep(1.5)  # Turf tillåter bara 1 anrop per sekund
                     url = "https://api.turfgame.com/v5/feeds/zone"
                     headers = {
-                        "User-Agent": "HomeAssistant-TurfIntegration/0.2.1",
+                        "User-Agent": "HomeAssistant-TurfIntegration/0.4.0",
                         "Accept": "application/json"
                     }
                     try:
@@ -131,7 +197,7 @@ async def async_setup_entry(
                     url = "https://api.turfgame.com/v5/zones"
                     payload = [{"name": name} for name in watched_zones]
                     headers = {
-                        "User-Agent": "HomeAssistant-TurfIntegration/0.2.1",
+                        "User-Agent": "HomeAssistant-TurfIntegration/0.4.0",
                         "Accept": "application/json"
                     }
                     try:
@@ -284,3 +350,54 @@ class TurfZoneOwnerSensor(CoordinatorEntity, SensorEntity):
             "zone_name": zone.get("name"),
             "owned_by_player": owner_name == self.player_name,
         }
+
+
+class TurfRankSensor(CoordinatorEntity, SensorEntity):
+    """Sensor som visar spelarens aktuella rank (titel) i Turf."""
+
+    def __init__(self, coordinator, turfname: str) -> None:
+        """Initiera sensorn."""
+        super().__init__(coordinator)
+        self.turfname = turfname
+        self._attr_name = f"Turf Rank {turfname}"
+        self._attr_unique_id = f"turf_rank_{turfname.lower()}"
+        self._attr_icon = "mdi:shield-star"
+
+    @property
+    def native_value(self):
+        """Hämta värdet (ranknamn) från koordinatorn."""
+        if self.coordinator.data:
+            rank_num = self.coordinator.data.get("rank")
+            if rank_num is not None:
+                return TURF_RANKS.get(rank_num, f"Rank {rank_num}")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Returnera extra attribut för sensorn."""
+        if self.coordinator.data:
+            return {
+                "rank_level": self.coordinator.data.get("rank"),
+                "total_points": self.coordinator.data.get("totalPoints"),
+            }
+        return {}
+
+
+class TurfPlaceSensor(CoordinatorEntity, SensorEntity):
+    """Sensor som visar spelarens aktuella placering i pågående omgång."""
+
+    def __init__(self, coordinator, turfname: str) -> None:
+        """Initiera sensorn."""
+        super().__init__(coordinator)
+        self.turfname = turfname
+        self._attr_name = f"Turf Place {turfname}"
+        self._attr_unique_id = f"turf_place_{turfname.lower()}"
+        self._attr_icon = "mdi:trophy"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def native_value(self):
+        """Hämta värdet (global placering) från koordinatorn."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("place")
+        return None

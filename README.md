@@ -7,6 +7,8 @@ En anpassad integration (Custom Component) för att hämta statistik och informa
 Just nu stöder integrationen följande:
 - **Zoner:** Visar hur många zoner en specifik spelare "äger" just nu.
 - **Poäng per timme:** Visar hur många poäng per timme spelaren får just nu.
+- **Rank/Titel:** Visar spelarens aktuella rank/titel (t.ex. *Turf Grandmaster*) baserat på totala karriärpoäng. Sensorn har även attributen `rank_level` (nivå 0–60) och `total_points`.
+- **Placering:** Visar spelarens aktuella globala placering i den pågående spelomgången.
 - **Senaste zonerna:** Visar namnet på den allra senast skapade zonen. I sensorns attribut sparas en lista med de senaste zonerna och i vilken region de ligger.
 - **Zonägare:** Visar vem som för tillfället äger en specifik zon. Du väljer själv vilka zoner du vill bevaka – en sensor skapas automatiskt per zon. Sensorn har även attributen `latitude`, `longitude` och `owned_by_player` (sant/falskt beroende på om den konfigurerade spelaren äger zonen just nu).
 
@@ -109,6 +111,49 @@ content: |-
   {% endif %}
 ```
 *(Tipset ovan visar de 10 senaste zonerna, men du kan ändra siffran om du vill se fler eller färre).*
+
+## 📊 Visa spelarstatistik på en Dashboard
+
+För att visa spelarens aktuella statistik (inklusive rank, placering, zoner och poäng) kan du lägga till ett **Entitetskort** eller ett **Markdown-kort** på din dashboard:
+
+### Alternativ 1: Entitetskort (Lista)
+Det här kortet visar spelarens värden i en ren lista. Ersätt `användarnamn` med det konfigurerade Turf-användarnamnet (t.ex. `sensor.turf_rank_grock` om användarnamnet är `grock`).
+
+```yaml
+type: entities
+title: "🏃 Turf-statistik"
+show_header_toggle: false
+entities:
+  - entity: sensor.turf_rank_användarnamn
+    name: Aktuell Rank/Titel
+    icon: mdi:shield-star
+  - entity: sensor.turf_place_användarnamn
+    name: Placering i omgången
+    icon: mdi:trophy-outline
+  - entity: sensor.turf_zones_användarnamn
+    name: Ägda zoner just nu
+    icon: mdi:map-marker-multiple
+  - entity: sensor.turf_points_per_hour_användarnamn
+    name: Poäng per timme (PPH)
+    icon: mdi:speedometer
+```
+
+### Alternativ 2: Markdown-kort (Profilkort)
+Det här kortet hämtar attributen och formaterar spelarens profil vackert med text och ikoner. Ersätt `användarnamn` med ditt Turf-användarnamn.
+
+```yaml
+type: markdown
+title: "🏆 Turf Profil"
+content: |-
+  ### 👤 Spelarinfo
+  * **Titel/Rank:** {{ states('sensor.turf_rank_användarnamn') }} *(Nivå {{ state_attr('sensor.turf_rank_användarnamn', 'rank_level') }})*
+  * **Placering i rundan:** Plats **{{ states('sensor.turf_place_användarnamn') }}** i världen 🌍
+
+  ### 📊 Speldata
+  * **Ägda zoner:** {{ states('sensor.turf_zones_användarnamn') }} st 📍
+  * **Aktuellt flöde:** {{ states('sensor.turf_points_per_hour_användarnamn') }} PPH ⚡
+  * **Totala poäng (karriär):** {{ state_attr('sensor.turf_rank_användarnamn', 'total_points') | int }} poäng 🌟
+```
 
 ## 🤖 Automatisera notiser för nya zoner
 
