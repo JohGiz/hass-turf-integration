@@ -1,9 +1,7 @@
 """Platform for sensor integration."""
 from __future__ import annotations
 
-import asyncio
 import logging
-from datetime import timedelta
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -11,19 +9,12 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-    DataUpdateCoordinator,
-    UpdateFailed,
-)
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-
-# Hur ofta Home Assistant ska hämta ny data från Turf (vi sätter den på var 5:e minut
-# för att inte spamma deras API i onödan)
-SCAN_INTERVAL = timedelta(minutes=5)
 
 TURF_RANKS = {
     0: "Newbie",
@@ -95,137 +86,29 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Sätt upp Turf-sensorn utifrån data från konfigurationsflödet."""
+    """Sätt upp Turf-sensorer utifrån koordinatorer som initierats i __init__."""
     # Hämta namnet som användaren skrev in vid installationen i Home Assistant
     turfname = config_entry.data.get("turfname")
-    
-    if turfname:
-        # Använd Home Assistants rekommenderade metod för asynkrona HTTP-anrop
-        session = async_get_clientsession(hass)
-        domain_data = hass.data.setdefault(config_entry.domain, {})
+    entry_data = hass.data[DOMAIN][config_entry.entry_id]
 
-        # Skapa ett globalt lås för att förhindra HTTP 429 (Too Many Requests) från Turf API
-        if "api_lock" not in domain_data:
-            domain_data["api_lock"] = asyncio.Lock()
-        api_lock = domain_data["api_lock"]
+    user_coordinator = entry_data["user_coordinator"]
+    zone_feed_coordinator = entry_data["zone_feed_coordinator"]
 
-        async def async_update_user_data():
-            """Hämta data från Turf API asynkront med lås."""
-            async with api_lock:
-                await asyncio.sleep(1.5)  # Turf tillåter bara 1 anrop per sekund
-                url = "https://api.turfgame.com/v5/users"
-                payload = [{"name": turfname}]
-                headers = {
-                    "User-Agent": "HomeAssistant-TurfIntegration/0.4.0",
-                    "Accept": "application/json"
-                }
-                try:
-                    async with session.post(url, json=payload, headers=headers) as response:
-                        if response.status == 200:
-                            data = await response.json()
-                            if data and isinstance(data, list) and len(data) > 0:
-                                return data[0]
-                            return None
-                        else:
-                            error_text = await response.text()
-                            raise UpdateFailed(f"HTTP {response.status}: {error_text}")
-                except Exception as err:
-                    raise UpdateFailed(f"Kunde inte uppdatera från Turf API: {err}")
+    sensors = [
+        TurfZonesSensor(user_coordinator, turfname),
+        TurfPphSensor(user_coordinator, turfname),
+        TurfRankSensor(user_coordinator, turfname),
+        TurfPlaceSensor(user_coordinator, turfname),
+        TurfLatestZonesSensor(zone_feed_coordinator),
+    ]
 
-        coordinator = DataUpdateCoordinator(
-            hass,
-            _LOGGER,
-            name=f"turf_user_{turfname}",
-            update_method=async_update_user_data,
-            update_interval=SCAN_INTERVAL,
-        )
+    zone_owner_coordinator = entry_data.get("zone_owner_coordinator")
+    watched_zones = entry_data.get("watched_zones", [])
+    if zone_owner_coordinator and watched_zones:
+        for zone_name in watched_zones:
+            sensors.append(TurfZoneOwnerSensor(zone_owner_coordinator, zone_name, turfname))
 
-        # Hämta data direkt första gången för att undvika "Unknown"
-        await coordinator.async_config_entry_first_refresh()
-
-        sensors = [
-            TurfZonesSensor(coordinator, turfname),
-            TurfPphSensor(coordinator, turfname),
-            TurfRankSensor(coordinator, turfname),
-            TurfPlaceSensor(coordinator, turfname)
-        ]
-
-        if "zone_feed_coordinator" not in domain_data:
-            async def async_update_zone_feed():
-                """Hämta data från Turf API (Feed/Zone) asynkront med lås."""
-                async with api_lock:
-                    await asyncio.sleep(1.5)  # Turf tillåter bara 1 anrop per sekund
-                    url = "https://api.turfgame.com/v5/feeds/zone"
-                    headers = {
-                        "User-Agent": "HomeAssistant-TurfIntegration/0.4.0",
-                        "Accept": "application/json"
-                    }
-                    try:
-                        # Observera: Detta är ett GET-anrop för feeds, inte POST!
-                        async with session.get(url, headers=headers) as response:
-                            if response.status == 200:
-                                return await response.json()
-                            else:
-                                error_text = await response.text()
-                                raise UpdateFailed(f"HTTP {response.status}: {error_text}")
-                    except Exception as err:
-                        raise UpdateFailed(f"Kunde inte uppdatera Turf zone feed: {err}")
-
-            zone_feed_coordinator = DataUpdateCoordinator(
-                hass,
-                _LOGGER,
-                name="turf_zone_feed",
-                update_method=async_update_zone_feed,
-                update_interval=SCAN_INTERVAL,
-            )
-            await zone_feed_coordinator.async_config_entry_first_refresh()
-            domain_data["zone_feed_coordinator"] = zone_feed_coordinator
-            sensors.append(TurfLatestZonesSensor(zone_feed_coordinator))
-            
-
-        watched_zones_str = config_entry.options.get(
-            "watched_zones",
-            config_entry.data.get("watched_zones", ""),
-        )
-        watched_zones = list(dict.fromkeys(z.strip() for z in watched_zones_str.split(",") if z.strip()))
-
-        if watched_zones:
-            async def async_update_zone_owners():
-                """Hämta alla bevakade zoner i ett enda batch-anrop."""
-                async with api_lock:
-                    await asyncio.sleep(1.5)
-                    url = "https://api.turfgame.com/v5/zones"
-                    payload = [{"name": name} for name in watched_zones]
-                    headers = {
-                        "User-Agent": "HomeAssistant-TurfIntegration/0.4.0",
-                        "Accept": "application/json"
-                    }
-                    try:
-                        async with session.post(url, json=payload, headers=headers) as response:
-                            if response.status == 200:
-                                data = await response.json()
-                                return {zone["name"]: zone for zone in data if "name" in zone}
-                            else:
-                                error_text = await response.text()
-                                raise UpdateFailed(f"HTTP {response.status}: {error_text}")
-                    except Exception as err:
-                        raise UpdateFailed(f"Kunde inte uppdatera zonägare: {err}")
-
-            zone_owner_coordinator = DataUpdateCoordinator(
-                hass,
-                _LOGGER,
-                name="turf_zone_owners",
-                update_method=async_update_zone_owners,
-                update_interval=SCAN_INTERVAL,
-            )
-            await zone_owner_coordinator.async_config_entry_first_refresh()
-
-            for zone_name in watched_zones:
-                sensors.append(TurfZoneOwnerSensor(zone_owner_coordinator, zone_name, turfname))
-
-        async_add_entities(sensors)
-    else:
-        _LOGGER.error("Kunde inte hitta 'turfname' i konfigurationen")
+    async_add_entities(sensors)
 
 
 class TurfZonesSensor(CoordinatorEntity, SensorEntity):
@@ -245,8 +128,7 @@ class TurfZonesSensor(CoordinatorEntity, SensorEntity):
     def native_value(self):
         """Hämta värdet från koordinatorn."""
         if self.coordinator.data:
-            zones = self.coordinator.data.get("zones", [])
-            return len(zones)
+            return len(self.coordinator.data.get("zones", []))
         return None
 
 
@@ -288,7 +170,6 @@ class TurfLatestZonesSensor(CoordinatorEntity, SensorEntity):
         if not data or not isinstance(data, list) or len(data) == 0:
             return "Inga nya zoner"
         newest = data[0]
-        # Hämta namnet på zonen (feed-datan kan se lite annorlunda ut än vanliga zoner)
         zone_name = newest.get("name")
         if not zone_name and "zone" in newest:
             zone_name = newest["zone"].get("name")
@@ -308,7 +189,7 @@ class TurfLatestZonesSensor(CoordinatorEntity, SensorEntity):
                 "name": z.get("name", "Okänd"),
                 "dateCreated": z.get("dateCreated", ""),
                 "region": z.get("region", {}).get("name", "Okänd region"),
-                "area": z.get("region", {}).get("area", {}).get("name", "")
+                "area": z.get("region", {}).get("area", {}).get("name", ""),
             })
         return {"new_zones": new_zones_list, "count": len(new_zones_list)}
 
