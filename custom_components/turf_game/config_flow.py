@@ -18,6 +18,8 @@ _LOGGER = logging.getLogger(__name__)
 DATA_SCHEMA = vol.Schema({
     vol.Required("turfname"): str,
     vol.Optional("watched_zones", default=""): str,
+    vol.Optional("watched_new_zones_in_regions", default=""): str,
+    vol.Optional("watched_new_zones_in_areas", default=""): str,
 })
 
 
@@ -87,11 +89,21 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             "watched_zones",
             self.config_entry.data.get("watched_zones", ""),
         )
+        current_regions = self.config_entry.options.get(
+            "watched_new_zones_in_regions",
+            self.config_entry.data.get("watched_new_zones_in_regions", ""),
+        )
+        current_areas = self.config_entry.options.get(
+            "watched_new_zones_in_areas",
+            self.config_entry.data.get("watched_new_zones_in_areas", ""),
+        )
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
-                vol.Optional("watched_zones", default=current_zones): str,
+                vol.Optional("watched_zones", description={"suggested_value": current_zones}): str,
+                vol.Optional("watched_new_zones_in_regions", description={"suggested_value": current_regions}): str,
+                vol.Optional("watched_new_zones_in_areas", description={"suggested_value": current_areas}): str,
             }),
         )
 
