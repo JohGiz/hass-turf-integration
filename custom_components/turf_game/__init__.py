@@ -113,6 +113,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         dict.fromkeys(z.strip() for z in watched_zones_str.split(",") if z.strip())
     )
 
+    watched_regions_str = entry.options.get(
+        "watched_new_zones_in_regions",
+        entry.data.get("watched_new_zones_in_regions", ""),
+    )
+    watched_regions = list(
+        dict.fromkeys(r.strip() for r in watched_regions_str.split(",") if r.strip())
+    )
+
+    watched_areas_str = entry.options.get(
+        "watched_new_zones_in_areas",
+        entry.data.get("watched_new_zones_in_areas", ""),
+    )
+    watched_areas = list(
+        dict.fromkeys(a.strip() for a in watched_areas_str.split(",") if a.strip())
+    )
+
+    entry_data["watched_regions"] = watched_regions
+    entry_data["watched_areas"] = watched_areas
+
     if watched_zones:
         async def async_update_zone_owners():
             async with api_lock:
