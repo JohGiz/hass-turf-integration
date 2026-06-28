@@ -108,6 +108,11 @@ async def async_setup_entry(
         for zone_name in watched_zones:
             sensors.append(TurfZoneOwnerSensor(zone_owner_coordinator, zone_name, turfname))
 
+    watched_regions = entry_data.get("watched_regions", [])
+    watched_areas = entry_data.get("watched_areas", [])
+    sensors.append(TurfWatchedRegionsZonesSensor(zone_feed_coordinator, turfname, watched_regions))
+    sensors.append(TurfWatchedAreasZonesSensor(zone_feed_coordinator, turfname, watched_areas))
+
     async_add_entities(sensors)
 
 
@@ -192,6 +197,97 @@ class TurfLatestZonesSensor(CoordinatorEntity, SensorEntity):
                 "area": z.get("region", {}).get("area", {}).get("name", ""),
             })
         return {"new_zones": new_zones_list, "count": len(new_zones_list)}
+
+
+class TurfWatchedRegionsZonesSensor(CoordinatorEntity, SensorEntity):
+    """Sensor som visar senast skapade zoner i en spelares bevakade regioner."""
+
+    def __init__(self, coordinator, turfname: str, watched_regions: list) -> None:
+        super().__init__(coordinator)
+        self._watched = set(watched_regions)
+        self._attr_name = f"Turf Latest Zones In Watched Regions {turfname}"
+        self._attr_unique_id = f"turf_latest_zones_in_watched_regions_{turfname.lower()}"
+        self._attr_icon = "mdi:map-marker-radius"
+
+    def _filtered_zones(self):
+        watched = {r.lower() for r in self._watched}
+        data = self.coordinator.data
+        if not data or not isinstance(data, list) or not watched:
+            return []
+        result = []
+        for item in data:
+            z = item.get("zone", item)
+            region = z.get("region", {}).get("name", "")
+            if region.lower() in watched:
+                result.append({
+                    "name": z.get("name", "Okänd"),
+                    "dateCreated": z.get("dateCreated", ""),
+                    "region": region,
+                    "area": z.get("region", {}).get("area", {}).get("name", ""),
+                })
+        return result
+
+    @property
+    def native_value(self):
+        if not self._watched:
+            return "Inga bevakade regioner"
+        zones = self._filtered_zones()
+        return zones[0]["name"] if zones else "Inga nya zoner"
+
+    @property
+    def extra_state_attributes(self):
+        zones = self._filtered_zones()
+        return {
+            "new_zones": zones,
+            "count": len(zones),
+            "watched_regions": sorted(self._watched),
+        }
+
+
+class TurfWatchedAreasZonesSensor(CoordinatorEntity, SensorEntity):
+    """Sensor som visar senast skapade zoner i en spelares bevakade areor."""
+
+    def __init__(self, coordinator, turfname: str, watched_areas: list) -> None:
+        super().__init__(coordinator)
+        self._watched = set(watched_areas)
+        self._attr_name = f"Turf Latest Zones In Watched Areas {turfname}"
+        self._attr_unique_id = f"turf_latest_zones_in_watched_areas_{turfname.lower()}"
+        self._attr_icon = "mdi:map-marker-radius"
+
+    def _filtered_zones(self):
+        watched = {a.lower() for a in self._watched}
+        data = self.coordinator.data
+        if not data or not isinstance(data, list) or not watched:
+            return []
+        result = []
+        for item in data:
+            z = item.get("zone", item)
+            region = z.get("region", {})
+            area = region.get("area", {}).get("name", "")
+            if area.lower() in watched:
+                result.append({
+                    "name": z.get("name", "Okänd"),
+                    "dateCreated": z.get("dateCreated", ""),
+                    "region": region.get("name", ""),
+                    "area": area,
+                })
+        return result
+
+    @property
+    def native_value(self):
+        if not self._watched:
+            return "Inga bevakade areor"
+        zones = self._filtered_zones()
+        return zones[0]["name"] if zones else "Inga nya zoner"
+
+    @property
+    def extra_state_attributes(self):
+        zones = self._filtered_zones()
+        return {
+            "new_zones": zones,
+            "count": len(zones),
+            "watched_areas": sorted(self._watched),
+        }
 
 
 class TurfZoneOwnerSensor(CoordinatorEntity, SensorEntity):

@@ -4,7 +4,9 @@
       "user": {
         "data": {
           "turfname": "[%key:common::config_flow::data::turfname%]",
-          "watched_zones": "Bevakade zoner (kommaseparerade, t.ex. ZoneA, ZoneB)"
+          "watched_zones": "Bevakade zoner (kommaseparerade, t.ex. ZoneA, ZoneB)",
+          "watched_new_zones_in_regions": "Bevaka nya zoner i regioner (kommaseparerade, t.ex. Stockholm, Västa Götaland)",
+          "watched_new_zones_in_areas": "Bevaka nya zoner i areor (kommaseparerade, t.ex. Stockholms kommun, Göteborgs kommun)"
         }
       }
     },
@@ -21,7 +23,9 @@
     "step": {
       "init": {
         "data": {
-          "watched_zones": "Bevakade zoner (kommaseparerade, t.ex. ZoneA, ZoneB)"
+          "watched_zones": "Bevakade zoner (kommaseparerade, t.ex. ZoneA, ZoneB)",
+          "watched_new_zones_in_regions": "Bevaka nya zoner i regioner (kommaseparerade, t.ex. Stockholm, Västa Götaland)",
+          "watched_new_zones_in_areas": "Bevaka nya zoner i areor (kommaseparerade, t.ex. Stockholms kommun, Göteborgs kommun)"
         }
       }
     }
