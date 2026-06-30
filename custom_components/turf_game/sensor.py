@@ -208,6 +208,10 @@ class TurfWatchedRegionsZonesSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = f"Turf Latest Zones In Watched Regions {turfname}"
         self._attr_unique_id = f"turf_latest_zones_in_watched_regions_{turfname.lower()}"
         self._attr_icon = "mdi:map-marker-radius"
+        self._first_update_done: bool = False
+        self._seen_zone_names: set[str] = set()
+        self._new_zones: list = []
+        self._last_new_zone_name: str = "Inga nya zoner"
 
     def _filtered_zones(self):
         watched = {r.lower() for r in self._watched}
@@ -227,19 +231,31 @@ class TurfWatchedRegionsZonesSensor(CoordinatorEntity, SensorEntity):
                 })
         return result
 
+    def _handle_coordinator_update(self) -> None:
+        all_zones = self._filtered_zones()
+        all_names = {z["name"] for z in all_zones}
+        if not self._first_update_done:
+            self._first_update_done = True
+            self._seen_zone_names = all_names
+            self._new_zones = []
+        else:
+            self._new_zones = [z for z in all_zones if z["name"] not in self._seen_zone_names]
+            self._seen_zone_names.update(all_names)
+            if self._new_zones:
+                self._last_new_zone_name = self._new_zones[0]["name"]
+        super()._handle_coordinator_update()
+
     @property
     def native_value(self):
         if not self._watched:
             return "Inga bevakade regioner"
-        zones = self._filtered_zones()
-        return zones[0]["name"] if zones else "Inga nya zoner"
+        return self._last_new_zone_name
 
     @property
     def extra_state_attributes(self):
-        zones = self._filtered_zones()
         return {
-            "new_zones": zones,
-            "count": len(zones),
+            "new_zones": self._new_zones,
+            "count": len(self._new_zones),
             "watched_regions": sorted(self._watched),
         }
 
@@ -253,6 +269,10 @@ class TurfWatchedAreasZonesSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = f"Turf Latest Zones In Watched Areas {turfname}"
         self._attr_unique_id = f"turf_latest_zones_in_watched_areas_{turfname.lower()}"
         self._attr_icon = "mdi:map-marker-radius"
+        self._first_update_done: bool = False
+        self._seen_zone_names: set[str] = set()
+        self._new_zones: list = []
+        self._last_new_zone_name: str = "Inga nya zoner"
 
     def _filtered_zones(self):
         watched = {a.lower() for a in self._watched}
@@ -273,19 +293,31 @@ class TurfWatchedAreasZonesSensor(CoordinatorEntity, SensorEntity):
                 })
         return result
 
+    def _handle_coordinator_update(self) -> None:
+        all_zones = self._filtered_zones()
+        all_names = {z["name"] for z in all_zones}
+        if not self._first_update_done:
+            self._first_update_done = True
+            self._seen_zone_names = all_names
+            self._new_zones = []
+        else:
+            self._new_zones = [z for z in all_zones if z["name"] not in self._seen_zone_names]
+            self._seen_zone_names.update(all_names)
+            if self._new_zones:
+                self._last_new_zone_name = self._new_zones[0]["name"]
+        super()._handle_coordinator_update()
+
     @property
     def native_value(self):
         if not self._watched:
             return "Inga bevakade areor"
-        zones = self._filtered_zones()
-        return zones[0]["name"] if zones else "Inga nya zoner"
+        return self._last_new_zone_name
 
     @property
     def extra_state_attributes(self):
-        zones = self._filtered_zones()
         return {
-            "new_zones": zones,
-            "count": len(zones),
+            "new_zones": self._new_zones,
+            "count": len(self._new_zones),
             "watched_areas": sorted(self._watched),
         }
 
